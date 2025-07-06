@@ -1,0 +1,55 @@
+{
+  "name": "typeblade",
+  "version": "1.0.0",
+  "description": "A dynamic, rhythm-sensitive typing-practice web app built with React + Phaser.js",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "api"
+  ],
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:api": "cd api && npm run dev",
+    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:api\" \"supabase start\"",
+    "build": "npm run build:frontend && npm run build:api",
+    "build:frontend": "cd frontend && npm run build",
+    "build:api": "cd api && npm run build",
+    "test": "npm run test:frontend && npm run test:api",
+    "test:frontend": "cd frontend && npm run test",
+    "test:api": "cd api && npm run test",
+    "lint": "npm run lint:frontend && npm run lint:api",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:api": "cd api && npm run lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "install:all": "npm install && cd frontend && npm install && cd ../api && npm install",
+    "clean": "rm -rf node_modules frontend/node_modules api/node_modules frontend/dist api/dist",
+    "deploy": "npm run build && flyctl deploy",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:push": "supabase db push",
+    "docker:build": "docker build -t typeblade .",
+    "docker:run": "docker run -p 3000:3000 -p 8080:8080 typeblade"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.1.1",
+    "supabase": "^2.30.4",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "typing",
+    "game",
+    "phaser",
+    "react",
+    "supabase",
+    "stripe",
+    "fly.io"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
