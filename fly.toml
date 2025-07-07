@@ -10,6 +10,9 @@ primary_region = "iad"
 [env]
   NODE_ENV = "production"
   PORT = "8080"
+  LOG_LEVEL = "info"
+  RATE_LIMIT_WINDOW_MS = "900000"
+  RATE_LIMIT_MAX_REQUESTS = "100"
 
 [http_service]
   internal_port = 8080
@@ -24,7 +27,7 @@ primary_region = "iad"
     interval = "30s"
     method = "GET"
     timeout = "5s"
-    path = "/health"
+    path = "/api/health"
 
 [[vm]]
   cpu_kind = "shared"

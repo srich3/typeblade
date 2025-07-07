@@ -48,15 +48,18 @@ COPY --from=builder /app/supabase ./supabase
 WORKDIR /app/api
 RUN npm install --omit=dev && npm cache clean --force
 
+# Create logs directory with proper permissions
+RUN mkdir -p logs && chown nextjs:nodejs logs
+
 # Create a non-root user
 USER nextjs
 
-# Expose ports
-EXPOSE 3000 8080
+# Expose port
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Start the application
 CMD ["npm", "start"] 
