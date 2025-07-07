@@ -63,7 +63,7 @@ if (process.env['NODE_ENV'] === 'production') {
   app.use(express.static(staticPath))
   
   // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     const indexPath = path.join(__dirname, '../frontend/dist/index.html')
     logger.info(`Serving index.html from: ${indexPath}`)
     res.sendFile(indexPath)
