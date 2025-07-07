@@ -40,7 +40,6 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/frontend/dist ./frontend/dist
 COPY --from=builder /app/api/dist ./api/dist
 COPY --from=builder /app/api/package.json ./api/package.json
-COPY --from=builder /app/api/package-lock.json ./api/package-lock.json
 
 # Copy Supabase configuration
 COPY --from=builder /app/supabase ./supabase
