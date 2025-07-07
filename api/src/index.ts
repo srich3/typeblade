@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import dotenv from 'dotenv'
 import rateLimit from 'express-rate-limit'
+import path from 'path'
 import { logger } from './utils/logger'
 import { errorHandler } from './middleware/errorHandler'
 import { notFoundHandler } from './middleware/notFoundHandler'
@@ -48,11 +49,22 @@ app.use(morgan('combined', {
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Routes
+// API Routes
 app.use('/api/health', healthRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/game', gameRoutes)
 app.use('/api/stripe', stripeRoutes)
+
+// Serve static files from the React app in production
+if (process.env['NODE_ENV'] === 'production') {
+  // Serve static files from the frontend/dist directory
+  app.use(express.static(path.join(__dirname, '../frontend/dist')))
+  
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'))
+  })
+}
 
 // Error handling middleware
 app.use(notFoundHandler)

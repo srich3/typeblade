@@ -20,12 +20,32 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build frontend
+FROM node:18 AS frontend-build
 WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install
+COPY frontend ./
 RUN npm run build
 
-# Build API
+# Build backend
+FROM node:18 AS backend-build
 WORKDIR /app/api
+COPY api/package.json api/package-lock.json ./
+RUN npm install
+COPY api ./
 RUN npm run build
+
+# Final image
+FROM node:18
+WORKDIR /app
+COPY --from=backend-build /app/api .
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+
+# (Optional) If your API expects static files in a different location, adjust the COPY accordingly
+
+ENV NODE_ENV=production
+EXPOSE 8080
+CMD ["node", "dist/index.js"]
 
 # Production image, copy all the files and run the app
 FROM base AS runner
