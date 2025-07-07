@@ -22,7 +22,7 @@ COPY . .
 # Build frontend
 FROM node:18 AS frontend-build
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json ./
+COPY frontend/package.json ./
 RUN npm install
 COPY frontend ./
 RUN npm run build
@@ -30,22 +30,10 @@ RUN npm run build
 # Build backend
 FROM node:18 AS backend-build
 WORKDIR /app/api
-COPY api/package.json api/package-lock.json ./
+COPY api/package.json ./
 RUN npm install
 COPY api ./
 RUN npm run build
-
-# Final image
-FROM node:18
-WORKDIR /app
-COPY --from=backend-build /app/api .
-COPY --from=frontend-build /app/frontend/dist ./frontend/dist
-
-# (Optional) If your API expects static files in a different location, adjust the COPY accordingly
-
-ENV NODE_ENV=production
-EXPOSE 8080
-CMD ["node", "dist/index.js"]
 
 # Production image, copy all the files and run the app
 FROM base AS runner
@@ -57,9 +45,9 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy built applications
-COPY --from=builder /app/frontend/dist ./frontend/dist
-COPY --from=builder /app/api/dist ./api/dist
-COPY --from=builder /app/api/package.json ./api/package.json
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+COPY --from=backend-build /app/api/dist ./api/dist
+COPY --from=backend-build /app/api/package.json ./api/package.json
 
 # Copy Supabase configuration
 COPY --from=builder /app/supabase ./supabase

@@ -58,11 +58,15 @@ app.use('/api/stripe', stripeRoutes)
 // Serve static files from the React app in production
 if (process.env['NODE_ENV'] === 'production') {
   // Serve static files from the frontend/dist directory
-  app.use(express.static(path.join(__dirname, '../frontend/dist')))
+  const staticPath = path.join(__dirname, '../frontend/dist')
+  logger.info(`Serving static files from: ${staticPath}`)
+  app.use(express.static(staticPath))
   
   // Handle React routing, return all requests to React app
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'))
+    const indexPath = path.join(__dirname, '../frontend/dist/index.html')
+    logger.info(`Serving index.html from: ${indexPath}`)
+    res.sendFile(indexPath)
   })
 }
 
