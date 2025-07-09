@@ -5,12 +5,23 @@
 @layer base {
   html {
     font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
   }
   
   body {
     @apply bg-gray-900 text-white;
     margin: 0;
     padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  #root {
+    width: 100vw;
+    height: 100vh;
   }
   
   * {
@@ -44,7 +55,14 @@
   }
   
   .game-container {
-    @apply w-full h-full flex items-center justify-center;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: block;
+    border: none;
+    border-radius: 0;
+    background: none;
   }
 }
 
