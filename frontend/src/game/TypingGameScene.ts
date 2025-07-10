@@ -158,6 +158,89 @@ function getRandomMotivationalMessage(): string {
   return MOTIVATIONAL_MESSAGES[idx];
 }
 
+// Color scheme
+const COLOR_NEUTRAL = '#5eead4'; // soft blueish teal
+const COLOR_GOOD = '#ffe066'; // bright yellow
+const COLOR_BAD = '#ff4d4f'; // bright red
+
+// Group keys by finger for better visual separation
+const QWERTY_FINGER_GROUPS = [
+  // Row 1: qwertyuiop
+  [
+    ['q'],           // l-pinky
+    ['w'],           // l-ring  
+    ['e'],           // l-middle
+    ['r', 't'],      // l-index
+    ['y', 'u'],      // r-index
+    ['i'],           // r-middle
+    ['o'],           // r-ring
+    ['p']            // r-pinky
+  ],
+  // Row 2: asdfghjkl
+  [
+    ['a'],           // l-pinky
+    ['s'],           // l-ring
+    ['d'],           // l-middle
+    ['f', 'g'],      // l-index
+    ['h', 'j'],      // r-index
+    ['k'],           // r-middle
+    ['l']            // r-ring
+  ],
+  // Row 3: zxcvbnm
+  [
+    ['z'],           // l-pinky
+    ['x'],           // l-ring
+    ['c'],           // l-middle
+    ['v', 'b'],      // l-index
+    ['n', 'm']       // r-index
+  ],
+  // Row 4: space
+  [
+    [' ']            // thumb
+  ]
+];
+
+// Finger mapping for QWERTY
+const FINGER_KEY_MAP: { [key: string]: 'l-pinky'|'l-ring'|'l-middle'|'l-index'|'r-index'|'r-middle'|'r-ring'|'r-pinky'|'thumb' } = {
+  // Left hand
+  q: 'l-pinky', a: 'l-pinky', z: 'l-pinky',
+  w: 'l-ring', s: 'l-ring', x: 'l-ring',
+  e: 'l-middle', d: 'l-middle', c: 'l-middle',
+  r: 'l-index', f: 'l-index', v: 'l-index', t: 'l-index', g: 'l-index', b: 'l-index',
+  // Right hand
+  y: 'r-index', h: 'r-index', n: 'r-index', u: 'r-index', j: 'r-index', m: 'r-index',
+  i: 'r-middle', k: 'r-middle',
+  o: 'r-ring', l: 'r-ring',
+  p: 'r-pinky',
+  // Space
+  ' ': 'thumb',
+};
+
+const FINGER_HOME_POSITIONS = {
+  'l-pinky':   { row: 1, col: 0 }, // a
+  'l-ring':    { row: 1, col: 1 }, // s
+  'l-middle':  { row: 1, col: 2 }, // d
+  'l-index':   { row: 1, col: 3.5 }, // f/g (between)
+  'r-index':   { row: 1, col: 5.5 }, // h/j (between)
+  'r-middle':  { row: 1, col: 7 }, // k
+  'r-ring':    { row: 1, col: 8 }, // l
+  'r-pinky':   { row: 0, col: 9 }, // p
+  'thumb':     { row: 3, col: 0 }, // space
+};
+
+// Key fill color mapping for legend
+const KEY_LEGEND_FILL: { [key: string]: { color: number, alpha: number } } = {
+  // dark gray
+  q: { color: 0x1e1e1e, alpha: 0.27 }, a: { color: 0x1e1e1e, alpha: 0.27 }, z: { color: 0x1e1e1e, alpha: 0.27 }, p: { color: 0x1e1e1e, alpha: 0.27 },
+  // gray
+  w: { color: 0x3c3c3c, alpha: 0.27 }, s: { color: 0x3c3c3c, alpha: 0.27 }, x: { color: 0x3c3c3c, alpha: 0.27 }, o: { color: 0x3c3c3c, alpha: 0.27 }, l: { color: 0x3c3c3c, alpha: 0.27 },
+  // light gray
+  e: { color: 0x787878, alpha: 0.27 }, d: { color: 0x787878, alpha: 0.27 }, c: { color: 0x787878, alpha: 0.27 }, i: { color: 0x787878, alpha: 0.27 }, k: { color: 0x787878, alpha: 0.27 },
+  // lighter gray
+  r: { color: 0xb4b4b4, alpha: 0.27 }, f: { color: 0xb4b4b4, alpha: 0.27 }, v: { color: 0xb4b4b4, alpha: 0.27 }, t: { color: 0xb4b4b4, alpha: 0.27 }, g: { color: 0xb4b4b4, alpha: 0.27 }, b: { color: 0xb4b4b4, alpha: 0.27 },
+  y: { color: 0xb4b4b4, alpha: 0.27 }, h: { color: 0xb4b4b4, alpha: 0.27 }, n: { color: 0xb4b4b4, alpha: 0.27 }, u: { color: 0xb4b4b4, alpha: 0.27 }, j: { color: 0xb4b4b4, alpha: 0.27 }, m: { color: 0xb4b4b4, alpha: 0.27 }
+};
+
 export default class TypingGameScene extends Phaser.Scene {
   private targetText: string = '';
   private playerInput: string = '';
@@ -176,11 +259,15 @@ export default class TypingGameScene extends Phaser.Scene {
   private previousWpmHistory: number[] = [];
   private previousStatsGraphics?: Phaser.GameObjects.Graphics;
   private endGameStatsObjects: Phaser.GameObjects.GameObject[] = [];
+  private keyboardLegendKeys: Phaser.GameObjects.Rectangle[] = [];
+  private keyboardLegendLabels: Phaser.GameObjects.Text[] = [];
+
 
   create() {
     this.startNewGame();
     this.input.keyboard?.on('keydown', this.handleKeyDown, this);
     this.scale.on('resize', this.handleResize, this);
+    this.updateKeyboardLegend();
   }
 
   private clearCharacterObjects() {
@@ -230,6 +317,8 @@ export default class TypingGameScene extends Phaser.Scene {
     this.updateCharacterColors();
     this.createTimeDisplay();
     this.startSidebarUpdates();
+    this.destroyKeyboardLegend();
+    this.updateKeyboardLegend();
   }
 
   private createTimeDisplay() {
@@ -239,9 +328,9 @@ export default class TypingGameScene extends Phaser.Scene {
       this.timeText = undefined;
     }
     // Place time at the top center, under the navbar
-    this.timeText = this.add.text(this.cameras.main.centerX, 32, 'Time: 0s', {
+    this.timeText = this.add.text(this.cameras.main.centerX, 32, '0s', {
       fontSize: '24px',
-      color: '#ffffff',
+      color: COLOR_NEUTRAL,
       fontFamily: 'JetBrains Mono, monospace',
       align: 'center',
     }).setOrigin(0.5);
@@ -269,7 +358,7 @@ export default class TypingGameScene extends Phaser.Scene {
     }
     const currentTime = Date.now();
     const timeElapsed = this.hasStartedTyping ? (currentTime - this.startTime) / 1000 : 0;
-    this.timeText.setText(`Time: ${Math.round(timeElapsed)}s`);
+    this.timeText.setText(`${Math.round(timeElapsed)}s`);
 
     // --- WPM tracking for graph ---
     if (this.hasStartedTyping) {
@@ -278,14 +367,23 @@ export default class TypingGameScene extends Phaser.Scene {
         // Track correct words at this second
         const correctWords = this.calculateCorrectWords();
         this.correctWordsHistory[nowSec] = correctWords;
-        // Calculate moving average WPM (last 5 seconds)
+        // Calculate WPM using a more accurate method
         let wpm = 0;
         if (nowSec >= 1) {
-          const window = 5;
+          // Use a 3-second window for more responsive feedback
+          const window = 3;
           const start = Math.max(0, nowSec - window + 1);
           const wordsTyped = this.correctWordsHistory[nowSec] - (this.correctWordsHistory[start - 1] || 0);
           const seconds = nowSec - start + 1;
-          wpm = seconds > 0 ? (wordsTyped / seconds) * 60 : 0;
+          
+          // Calculate WPM with better accuracy
+          if (seconds > 0) {
+            // Use exponential smoothing for smoother transitions
+            const currentWpm = (wordsTyped / seconds) * 60;
+            const previousWpm = this.wpmHistory[nowSec - 1] || 0;
+            const smoothingFactor = 0.7; // 70% weight to current, 30% to previous
+            wpm = (currentWpm * smoothingFactor) + (previousWpm * (1 - smoothingFactor));
+          }
         }
         this.wpmHistory[nowSec] = wpm;
         this.lastWpmUpdateTime = nowSec;
@@ -330,7 +428,7 @@ export default class TypingGameScene extends Phaser.Scene {
       const charObj = this.add.text(x, y, this.targetText[i], {
         fontSize: `${fontSize}px`,
         fontFamily: 'JetBrains Mono, monospace',
-        color: '#ffffff',
+        color: COLOR_NEUTRAL,
       });
       this.characterObjects.push(charObj);
     }
@@ -352,18 +450,18 @@ export default class TypingGameScene extends Phaser.Scene {
 
   private updateCharacterColors() {
     for (let i = 0; i < this.characterObjects.length; i++) {
-      let color = '#ffffff'; // Default white
+      let color = COLOR_NEUTRAL; // Default neutral
       let displayText = this.targetText[i]; // Default to target character
       
       if (this.playerInput[i] !== undefined) {
         if (this.playerInput[i] === this.targetText[i]) {
-          color = '#10b981'; // Green for correct
+          color = COLOR_GOOD; // Good for correct
           // For spaces, show green underscore
           if (this.targetText[i] === ' ') {
             displayText = '_';
           }
         } else {
-          color = '#ef4444'; // Red for incorrect
+          color = COLOR_BAD; // Bad for incorrect
           // Replace with what the player actually typed
           displayText = this.playerInput[i];
           // For spaces, show red underscore
@@ -376,6 +474,153 @@ export default class TypingGameScene extends Phaser.Scene {
       this.characterObjects[i].setColor(color);
       this.characterObjects[i].setText(displayText);
     }
+  }
+
+  private createKeyboardLegend(nextKey: string) {
+    this.destroyKeyboardLegend();
+    const keySize = 44;
+    const keyGap = 8;
+    const fingerGap = 5; // gap between keys used by the same finger
+    const handGap = 60; // gap between left and right hands
+    const rowGap = 10;
+    const legendY = this.cameras.main.centerY + 100;
+    
+    // Define individual key positions like on a real QWERTY keyboard
+    const keyPositions = [
+      // Top row: q w e r t y u i o p
+      { key: 'q', finger: 'l-pinky', x: 0 },
+      { key: 'w', finger: 'l-ring', x: 1 },
+      { key: 'e', finger: 'l-middle', x: 2 },
+      { key: 'r', finger: 'l-index', x: 3 },
+      { key: 't', finger: 'l-index', x: 4 },
+      { key: 'y', finger: 'r-index', x: 6 }, // Skip 5 for hand gap
+      { key: 'u', finger: 'r-index', x: 7 },
+      { key: 'i', finger: 'r-middle', x: 8 },
+      { key: 'o', finger: 'r-ring', x: 9 },
+      { key: 'p', finger: 'r-pinky', x: 10 },
+      
+      // Home row: a s d f g h j k l
+      { key: 'a', finger: 'l-pinky', x: 0 },
+      { key: 's', finger: 'l-ring', x: 1 },
+      { key: 'd', finger: 'l-middle', x: 2 },
+      { key: 'f', finger: 'l-index', x: 3 },
+      { key: 'g', finger: 'l-index', x: 4 },
+      { key: 'h', finger: 'r-index', x: 6 },
+      { key: 'j', finger: 'r-index', x: 7 },
+      { key: 'k', finger: 'r-middle', x: 8 },
+      { key: 'l', finger: 'r-ring', x: 9 },
+      
+      // Bottom row: z x c v b n m
+      { key: 'z', finger: 'l-pinky', x: 0 },
+      { key: 'x', finger: 'l-ring', x: 1 },
+      { key: 'c', finger: 'l-middle', x: 2 },
+      { key: 'v', finger: 'l-index', x: 3 },
+      { key: 'b', finger: 'l-index', x: 4 },
+      { key: 'n', finger: 'r-index', x: 6 },
+      { key: 'm', finger: 'r-index', x: 7 },
+      
+      // Space
+      { key: ' ', finger: 'thumb', x: 5 } // Center position
+    ];
+    
+    // Calculate total width and column positions with extra space for stagger
+    const columnWidth = keySize + fingerGap + 10; // Extra space to prevent overlap from stagger
+    const maxColumn = Math.max(...keyPositions.map(kp => kp.x));
+    const totalWidth = maxColumn * columnWidth + keySize;
+    const startX = this.cameras.main.centerX - totalWidth / 2;
+    
+    // Draw each row with staggered positioning
+    const rows = [
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+      [' ']
+    ];
+    
+    // Stagger offsets for each row (relative to the base column position)
+    const rowStagger = [
+      0,    // Top row (qwerty) - no offset
+      0.3,  // Home row (asdf) - slight right offset
+      0.6,  // Bottom row (zxcv) - more right offset
+      0     // Space row - no offset
+    ];
+    
+    rows.forEach((row, rowIdx) => {
+      const y = legendY - (rows.length * (keySize + rowGap)) / 2 + rowIdx * (keySize + rowGap);
+      
+      row.forEach((key) => {
+        // Find the key position
+        const keyPos = keyPositions.find(kp => kp.key === key);
+        if (!keyPos) return;
+        
+        // Calculate x position for this key with stagger
+        let x = startX + (keyPos.x + rowStagger[rowIdx]) * columnWidth;
+        
+        // Special handling for space key
+        if (key === ' ') {
+          x = this.cameras.main.centerX - (keySize * 5) / 2; // Center the spacebar
+        }
+        
+        const isSpace = key === ' ';
+        const w = isSpace ? keySize * 5 : keySize;
+        const highlight = (nextKey === ' ' && isSpace) || (nextKey && key === nextKey.toLowerCase());
+        const isHighlighted = highlight;
+        
+        const fill = KEY_LEGEND_FILL[key];
+        const fillColor = isHighlighted ? 0xffe066 : (fill ? fill.color : 0x000000);
+        const fillAlpha = isHighlighted ? 1 : (fill ? fill.alpha : 0);
+        const rect = this.add.rectangle(x + w / 2, y + keySize / 2, w, keySize)
+          .setStrokeStyle(isHighlighted ? 3 : 2, isHighlighted ? 0xffe066 : 0x5eead4)
+          .setFillStyle(fillColor, fillAlpha)
+          .setAlpha(1);
+        (rect as any).radius = 10;
+        this.keyboardLegendKeys.push(rect);
+        
+        if (!isSpace) {
+          const label = this.add.text(x + w / 2, y + keySize / 2, key.toUpperCase(), {
+            fontSize: '22px',
+            color: isHighlighted ? '#111' : COLOR_NEUTRAL,
+            fontFamily: 'JetBrains Mono, monospace',
+            fontStyle: 'bold',
+          }).setOrigin(0.5);
+          this.keyboardLegendLabels.push(label);
+        }
+      });
+    });
+  }
+
+  private destroyKeyboardLegend() {
+    this.keyboardLegendKeys.forEach(obj => obj.destroy());
+    this.keyboardLegendLabels.forEach(obj => obj.destroy());
+    this.keyboardLegendKeys = [];
+    this.keyboardLegendLabels = [];
+  }
+
+
+
+  // Update legend
+  private updateKeyboardLegend() {
+    if (!this.isGameActive) return;
+    const nextKey = this.targetText[this.playerInput.length] || '';
+    this.createKeyboardLegend(nextKey);
+  }
+
+  private calculateRunningAverage(data: number[], windowSize: number): number[] {
+    if (data.length === 0) return [];
+    if (data.length === 1) return data;
+    
+    const smoothed: number[] = [];
+    const halfWindow = Math.floor(windowSize / 2);
+    
+    for (let i = 0; i < data.length; i++) {
+      const start = Math.max(0, i - halfWindow);
+      const end = Math.min(data.length - 1, i + halfWindow);
+      const window = data.slice(start, end + 1);
+      const average = window.reduce((sum, val) => sum + val, 0) / window.length;
+      smoothed.push(average);
+    }
+    
+    return smoothed;
   }
 
   private handleKeyDown(event: KeyboardEvent) {
@@ -396,6 +641,7 @@ export default class TypingGameScene extends Phaser.Scene {
       // Allow typing beyond the target length to handle mistakes
       this.playerInput += event.key;
       this.updateCharacterColors();
+      this.updateKeyboardLegend();
       
       // End game when player reaches the end of the target text
       if (this.playerInput.length >= this.targetText.length) {
@@ -405,6 +651,7 @@ export default class TypingGameScene extends Phaser.Scene {
       if (this.playerInput.length > 0) {
         this.playerInput = this.playerInput.slice(0, -1);
         this.updateCharacterColors();
+        this.updateKeyboardLegend();
       }
     }
   }
@@ -425,6 +672,7 @@ export default class TypingGameScene extends Phaser.Scene {
     // DO NOT destroy or clear this.characterObjects here!
     // The sentence/game text should remain visible.
 
+    this.destroyKeyboardLegend(); // Hide legend on end screen
     this.showStats();
   }
 
@@ -468,7 +716,6 @@ export default class TypingGameScene extends Phaser.Scene {
       this.previousStatsGraphics.destroy();
       this.previousStatsGraphics = undefined;
     }
-    // Clear any previous end game stat objects
     if (this.endGameStatsObjects && this.endGameStatsObjects.length > 0) {
       this.endGameStatsObjects.forEach(obj => obj.destroy());
       this.endGameStatsObjects = [];
@@ -491,7 +738,7 @@ export default class TypingGameScene extends Phaser.Scene {
     const wpmText = this.add.text(leftColX, y, `WPM: ${wpm}`,
       {
         fontSize: '64px',
-        color: '#3b82f6',
+        color: COLOR_NEUTRAL,
         fontFamily: 'JetBrains Mono, monospace',
         align: 'center',
       }).setOrigin(0.5, 0);
@@ -501,7 +748,7 @@ export default class TypingGameScene extends Phaser.Scene {
     const accuracyText = this.add.text(leftColX, y, `ACC: ${accuracy}%`,
       {
         fontSize: '48px',
-        color: '#10b981',
+        color: COLOR_GOOD,
         fontFamily: 'JetBrains Mono, monospace',
         align: 'center',
       }).setOrigin(0.5, 0);
@@ -511,7 +758,7 @@ export default class TypingGameScene extends Phaser.Scene {
     const statsRow = `Correct: ${correctWords}   Mistakes: ${mistakes}   Time: ${Math.round(timeElapsed)}s`;
     const statsRowText = this.add.text(leftColX, y, statsRow, {
       fontSize: '26px',
-      color: '#ffffff',
+      color: COLOR_NEUTRAL,
       fontFamily: 'JetBrains Mono, monospace',
       align: 'center',
     }).setOrigin(0.5, 0);
@@ -528,33 +775,35 @@ export default class TypingGameScene extends Phaser.Scene {
     if (this.previousWpmHistory && this.previousWpmHistory.length > 1) {
       this.previousStatsGraphics.lineStyle(3, 0x888888, 1);
       const prevData = this.previousWpmHistory.filter(v => typeof v === 'number');
-      const prevN = prevData.length;
-      const prevMaxWpm = Math.max(60, ...prevData);
+      const smoothedPrevData = this.calculateRunningAverage(prevData, 3);
+      const prevN = smoothedPrevData.length;
+      const prevMaxWpm = Math.max(60, ...smoothedPrevData);
       const prevMinWpm = 0;
       for (let i = 1; i < prevN; i++) {
         const x1 = graphX + ((i - 1) / (prevN - 1)) * graphWidth;
-        const y1 = graphY + graphHeight - ((prevData[i - 1] - prevMinWpm) / (prevMaxWpm - prevMinWpm)) * graphHeight;
+        const y1 = graphY + graphHeight - ((smoothedPrevData[i - 1] - prevMinWpm) / (prevMaxWpm - prevMinWpm)) * graphHeight;
         const x2 = graphX + (i / (prevN - 1)) * graphWidth;
-        const y2 = graphY + graphHeight - ((prevData[i] - prevMinWpm) / (prevMaxWpm - prevMinWpm)) * graphHeight;
+        const y2 = graphY + graphHeight - ((smoothedPrevData[i] - prevMinWpm) / (prevMaxWpm - prevMinWpm)) * graphHeight;
         this.previousStatsGraphics.moveTo(x1, y1);
         this.previousStatsGraphics.lineTo(x2, y2);
       }
       this.previousStatsGraphics.strokePath();
       this.endGameStatsObjects.push(this.previousStatsGraphics);
     }
-    // Draw current game graph in blue
+    // Draw current game graph in blueish teal
     const graphics = this.add.graphics();
-    graphics.lineStyle(3, 0x3b82f6, 1);
+    graphics.lineStyle(3, 0x5eead4, 1);
     const wpmData = this.wpmHistory.filter(v => typeof v === 'number');
-    const maxWpm = Math.max(60, ...wpmData); // Ensure at least 60 for scale
+    const smoothedWpmData = this.calculateRunningAverage(wpmData, 3);
+    const maxWpm = Math.max(60, ...smoothedWpmData); // Ensure at least 60 for scale
     const minWpm = 0;
-    const n = wpmData.length;
+    const n = smoothedWpmData.length;
     if (n > 1) {
       for (let i = 1; i < n; i++) {
         const x1 = graphX + ((i - 1) / (n - 1)) * graphWidth;
-        const y1 = graphY + graphHeight - ((wpmData[i - 1] - minWpm) / (maxWpm - minWpm)) * graphHeight;
+        const y1 = graphY + graphHeight - ((smoothedWpmData[i - 1] - minWpm) / (maxWpm - minWpm)) * graphHeight;
         const x2 = graphX + (i / (n - 1)) * graphWidth;
-        const y2 = graphY + graphHeight - ((wpmData[i] - minWpm) / (maxWpm - minWpm)) * graphHeight;
+        const y2 = graphY + graphHeight - ((smoothedWpmData[i] - minWpm) / (maxWpm - minWpm)) * graphHeight;
         graphics.moveTo(x1, y1);
         graphics.lineTo(x2, y2);
       }
@@ -567,7 +816,7 @@ export default class TypingGameScene extends Phaser.Scene {
     const motivational = getRandomMotivationalMessage();
     const motivationalText = this.add.text(centerX, belowY, motivational, {
       fontSize: '22px',
-      color: '#eab308',
+      color: COLOR_GOOD,
       fontFamily: 'JetBrains Mono, monospace',
       align: 'center',
       wordWrap: { width: Math.min(this.cameras.main.width * 0.9, 900) }
@@ -576,7 +825,7 @@ export default class TypingGameScene extends Phaser.Scene {
     belowY += 60;
     this.statsText = this.add.text(centerX, belowY, 'Press SPACE to play again', {
       fontSize: '28px',
-      color: '#ffffff',
+      color: COLOR_NEUTRAL,
       fontFamily: 'JetBrains Mono, monospace',
       align: 'center',
     }).setOrigin(0.5);
@@ -593,6 +842,8 @@ export default class TypingGameScene extends Phaser.Scene {
     if (this.isGameActive) {
       this.createTimeDisplay();
       this.startSidebarUpdates();
+      this.destroyKeyboardLegend();
+      this.updateKeyboardLegend();
     }
     
     if (!this.isGameActive && this.statsText) {

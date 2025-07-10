@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import TypingGameScene from '../game/TypingGameScene'
+import KeyboardLegend from '../game/KeyboardLegend'
 
 const Game = () => {
   const gameRef = useRef<Phaser.Game | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const phaserContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleResize() {
@@ -21,15 +22,15 @@ const Game = () => {
       }
     }
 
-    if (containerRef.current && !gameRef.current) {
+    if (phaserContainerRef.current && !gameRef.current) {
       const width = window.innerWidth
       const height = window.innerHeight - 64 // Subtract navbar height (64px)
       const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
         width,
         height,
-        parent: containerRef.current,
-        backgroundColor: '#1f2937',
+        parent: phaserContainerRef.current,
+        backgroundColor: '#0d1117',
         scene: TypingGameScene,
         physics: {
           default: 'arcade',
@@ -54,16 +55,21 @@ const Game = () => {
   }, [])
 
   return (
-    <div className="game-container" style={{ width: '100%', height: 'calc(100vh - 64px)', margin: 0, padding: 0 }}>
+    <div className="game-container" style={{ width: '100%', height: 'calc(100vh - 64px)', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
       <div
-        ref={containerRef}
+        ref={phaserContainerRef}
         style={{
           width: '100%',
           height: '100%',
           margin: 0,
           padding: 0,
+          background: '#0d1117',
+          flex: 1,
         }}
       />
+      <div style={{ width: '100%', background: '#0d1117', display: 'flex', justifyContent: 'center' }}>
+        <KeyboardLegend highlightKey="a" />
+      </div>
     </div>
   )
 }
