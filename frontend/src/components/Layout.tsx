@@ -1,13 +1,20 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from './Navbar.tsx'
 
 const Layout = () => {
+  const location = useLocation()
+  const isGameRoute = location.pathname === '/game'
+
   return (
     <div className="min-h-screen bg-gray-900">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
+      {isGameRoute ? (
         <Outlet />
-      </main>
+      ) : (
+        <main className="container mx-auto px-4 py-8">
+          <Outlet />
+        </main>
+      )}
     </div>
   )
 }

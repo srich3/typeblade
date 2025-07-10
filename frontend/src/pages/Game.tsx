@@ -10,7 +10,7 @@ const Game = () => {
     function handleResize() {
       if (gameRef.current) {
         const width = window.innerWidth;
-        const height = window.innerHeight;
+        const height = window.innerHeight - 64; // Subtract navbar height (64px)
         gameRef.current.scale.resize(width, height);
         // Also update camera size for the active scene
         const scene = gameRef.current.scene.getAt(0);
@@ -23,7 +23,7 @@ const Game = () => {
 
     if (containerRef.current && !gameRef.current) {
       const width = window.innerWidth
-      const height = window.innerHeight
+      const height = window.innerHeight - 64 // Subtract navbar height (64px)
       const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
         width,
@@ -54,17 +54,14 @@ const Game = () => {
   }, [])
 
   return (
-    <div className="game-container" style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
+    <div className="game-container" style={{ width: '100%', height: 'calc(100vh - 64px)', margin: 0, padding: 0 }}>
       <div
         ref={containerRef}
         style={{
-          width: '100vw',
-          height: '100vh',
+          width: '100%',
+          height: '100%',
           margin: 0,
           padding: 0,
-          position: 'fixed',
-          left: 0,
-          top: 0,
         }}
       />
     </div>
