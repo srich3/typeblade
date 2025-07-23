@@ -36,7 +36,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.8",
-    "@types/supertest": "^2.0.16",
+    "@types/supertest": "^2.0.16"
   },
   "devDependencies": {
     "ts-jest": "^29.1.1",
