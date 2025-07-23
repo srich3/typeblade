@@ -1,4 +1,3 @@
-import React from 'react';
 
 const COLOR_NEUTRAL = '#5eead4';
 const COLOR_GOOD = '#ffe066';
